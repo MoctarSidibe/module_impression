@@ -14,18 +14,12 @@ import {
   InputLabel,
   Slider,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Tabs,
   Tab,
-  Collapse,
-  Switch,
-  FormControlLabel,
-  Grid,
   Chip,
   alpha,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Save as SaveIcon,
@@ -33,7 +27,6 @@ import {
   Redo as RedoIcon,
   ZoomIn as ZoomInIcon,
   ZoomOut as ZoomOutIcon,
-  Fullscreen as FullscreenIcon,
   TextFields as TextFieldsIcon,
   Image as ImageIcon,
   CropSquare as RectangleIcon,
@@ -42,7 +35,6 @@ import {
   CreditCard as CardIcon,
   Layers as LayersIcon,
   Settings as SettingsIcon,
-  Palette as PaletteIcon,
   FormatBold as BoldIcon,
   FormatItalic as ItalicIcon,
   FormatUnderlined as UnderlineIcon,
@@ -55,8 +47,6 @@ import {
   LockOpen as UnlockIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
-  ExpandMore as ExpandMoreIcon,
-  ExpandLess as ExpandLessIcon,
   Person as PersonIcon,
   Badge as BadgeIcon,
   DateRange as DateIcon,
@@ -66,11 +56,12 @@ import {
   Fingerprint as FingerprintIcon,
   ArrowBack as ArrowBackIcon,
   Preview as PreviewIcon,
-  Download as DownloadIcon,
   GridOn as GridIcon,
-  FlipToFront as FlipIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  DragIndicator as DragIcon,
 } from '@mui/icons-material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import { SketchPicker } from 'react-color';
 import { toast } from 'react-toastify';
@@ -86,22 +77,22 @@ const CARD_HEIGHT_PX = Math.round(CARD_HEIGHT_MM * MM_TO_PX);
 
 // Variables dynamiques disponibles
 const DYNAMIC_VARIABLES = [
-  { id: 'nom', label: 'Nom', icon: <PersonIcon />, example: 'DUPONT' },
-  { id: 'prenom', label: 'Prénom', icon: <PersonIcon />, example: 'Jean' },
-  { id: 'photo_url', label: 'Photo', icon: <ImageIcon />, example: '/photo.jpg' },
-  { id: 'numero_carte', label: 'N° Carte', icon: <BadgeIcon />, example: 'FR-2024-001' },
-  { id: 'date_naissance', label: 'Date de naissance', icon: <DateIcon />, example: '15/03/1985' },
-  { id: 'lieu_naissance', label: 'Lieu de naissance', icon: <HomeIcon />, example: 'Paris' },
-  { id: 'email', label: 'Email', icon: <EmailIcon />, example: 'jean@email.fr' },
-  { id: 'telephone', label: 'Téléphone', icon: <PhoneIcon />, example: '06 12 34 56 78' },
-  { id: 'adresse', label: 'Adresse', icon: <HomeIcon />, example: '15 Rue de la République' },
-  { id: 'ville', label: 'Ville', icon: <HomeIcon />, example: 'Lyon' },
-  { id: 'code_postal', label: 'Code postal', icon: <HomeIcon />, example: '69001' },
-  { id: 'numero_permis', label: 'N° Permis', icon: <CardIcon />, example: '12AB34567' },
-  { id: 'categorie_permis', label: 'Catégorie permis', icon: <CardIcon />, example: 'B' },
-  { id: 'date_delivrance', label: 'Date délivrance', icon: <DateIcon />, example: '20/06/2010' },
-  { id: 'date_expiration', label: 'Date expiration', icon: <DateIcon />, example: '20/06/2030' },
-  { id: 'nfc_uid', label: 'UID NFC', icon: <FingerprintIcon />, example: 'A1B2C3D4' },
+  { id: 'nom', label: 'Nom', icon: <PersonIcon fontSize="small" />, example: 'DUPONT' },
+  { id: 'prenom', label: 'Prénom', icon: <PersonIcon fontSize="small" />, example: 'Jean' },
+  { id: 'photo_url', label: 'Photo', icon: <ImageIcon fontSize="small" />, example: '/photo.jpg' },
+  { id: 'numero_carte', label: 'N° Carte', icon: <BadgeIcon fontSize="small" />, example: 'FR-2024-001' },
+  { id: 'date_naissance', label: 'Date de naissance', icon: <DateIcon fontSize="small" />, example: '15/03/1985' },
+  { id: 'lieu_naissance', label: 'Lieu de naissance', icon: <HomeIcon fontSize="small" />, example: 'Paris' },
+  { id: 'email', label: 'Email', icon: <EmailIcon fontSize="small" />, example: 'jean@email.fr' },
+  { id: 'telephone', label: 'Téléphone', icon: <PhoneIcon fontSize="small" />, example: '06 12 34 56 78' },
+  { id: 'adresse', label: 'Adresse', icon: <HomeIcon fontSize="small" />, example: '15 Rue de la République' },
+  { id: 'ville', label: 'Ville', icon: <HomeIcon fontSize="small" />, example: 'Lyon' },
+  { id: 'code_postal', label: 'Code postal', icon: <HomeIcon fontSize="small" />, example: '69001' },
+  { id: 'numero_permis', label: 'N° Permis', icon: <CardIcon fontSize="small" />, example: '12AB34567' },
+  { id: 'categorie_permis', label: 'Catégorie permis', icon: <CardIcon fontSize="small" />, example: 'B' },
+  { id: 'date_delivrance', label: 'Date délivrance', icon: <DateIcon fontSize="small" />, example: '20/06/2010' },
+  { id: 'date_expiration', label: 'Date expiration', icon: <DateIcon fontSize="small" />, example: '20/06/2030' },
+  { id: 'nfc_uid', label: 'UID NFC', icon: <FingerprintIcon fontSize="small" />, example: 'A1B2C3D4' },
 ];
 
 // Templates d'éléments prédéfinis
@@ -221,6 +212,54 @@ const ELEMENT_TEMPLATES = {
   },
 };
 
+// Element Library Item Component
+const ElementLibraryItem = ({ icon, label, color, onClick }) => (
+  <Box
+    onClick={onClick}
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1.5,
+      p: 1.5,
+      borderRadius: 2,
+      cursor: 'grab',
+      bgcolor: 'rgba(15, 15, 35, 0.5)',
+      border: '1px solid rgba(148, 163, 184, 0.1)',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        bgcolor: 'rgba(99, 102, 241, 0.15)',
+        borderColor: 'rgba(99, 102, 241, 0.3)',
+        transform: 'translateX(4px)',
+      },
+      '&:active': {
+        cursor: 'grabbing',
+        transform: 'scale(0.98)',
+      },
+    }}
+  >
+    <Box
+      sx={{
+        width: 36,
+        height: 36,
+        borderRadius: 1.5,
+        bgcolor: alpha(color, 0.15),
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      {React.cloneElement(icon, { sx: { color, fontSize: 20 } })}
+    </Box>
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Typography variant="body2" fontWeight={500} noWrap>
+        {label}
+      </Typography>
+    </Box>
+    <DragIcon sx={{ color: 'text.disabled', fontSize: 18 }} />
+  </Box>
+);
+
 // Composant Element sur le canvas
 const CanvasElement = ({
   element,
@@ -231,7 +270,6 @@ const CanvasElement = ({
   showGrid,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const elementRef = useRef(null);
 
@@ -253,7 +291,6 @@ const CanvasElement = ({
       let newX = (e.clientX - dragStart.x) / scale;
       let newY = (e.clientY - dragStart.y) / scale;
 
-      // Snap to grid if enabled
       if (showGrid) {
         newX = Math.round(newX / 10) * 10;
         newY = Math.round(newY / 10) * 10;
@@ -269,7 +306,6 @@ const CanvasElement = ({
 
   const handleMouseUp = () => {
     setIsDragging(false);
-    setIsResizing(false);
   };
 
   useEffect(() => {
@@ -361,7 +397,6 @@ const CanvasElement = ({
       case 'text':
         return element.content;
       case 'dynamicText':
-        const variable = DYNAMIC_VARIABLES.find((v) => v.id === element.variable);
         return `{{${element.variable}}}`;
       case 'image':
         return element.src ? (
@@ -397,7 +432,7 @@ const CanvasElement = ({
               flexDirection: 'column',
             }}
           >
-            <PersonIcon sx={{ fontSize: 32, color: '#999' }} />
+            <PersonIcon sx={{ fontSize: 32 * scale, color: '#999' }} />
             <Typography variant="caption" sx={{ color: '#999', fontSize: 8 * scale }}>
               PHOTO
             </Typography>
@@ -421,7 +456,9 @@ const CanvasElement = ({
               <Box
                 key={i}
                 sx={{
-                  bgcolor: Math.random() > 0.5 ? element.foregroundColor : 'transparent',
+                  bgcolor: [0, 1, 2, 4, 5, 6, 10, 14, 18, 20, 21, 22, 24].includes(i)
+                    ? element.foregroundColor
+                    : 'transparent',
                 }}
               />
             ))}
@@ -441,11 +478,9 @@ const CanvasElement = ({
       {renderContent()}
       {selected && !element.locked && (
         <>
-          {/* Resize handles */}
           {['nw', 'ne', 'sw', 'se'].map((pos) => (
             <Box
               key={pos}
-              className="resize-handle"
               sx={{
                 position: 'absolute',
                 width: 10,
@@ -456,6 +491,10 @@ const CanvasElement = ({
                 cursor: `${pos}-resize`,
                 ...(pos.includes('n') ? { top: -5 } : { bottom: -5 }),
                 ...(pos.includes('w') ? { left: -5 } : { right: -5 }),
+                '&:hover': {
+                  transform: 'scale(1.2)',
+                  bgcolor: '#4f46e5',
+                },
               }}
             />
           ))}
@@ -466,12 +505,27 @@ const CanvasElement = ({
 };
 
 // Panel de propriétés
-const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
+const PropertiesPanel = ({ element, onUpdate, onDelete, onDuplicate }) => {
   const [colorPickerOpen, setColorPickerOpen] = useState(null);
 
   if (!element) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: 2,
+            bgcolor: 'rgba(99, 102, 241, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mx: 'auto',
+            mb: 2,
+          }}
+        >
+          <SettingsIcon sx={{ fontSize: 32, color: 'text.disabled' }} />
+        </Box>
         <Typography variant="body2" color="text.secondary">
           Sélectionnez un élément pour modifier ses propriétés
         </Typography>
@@ -480,8 +534,8 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
   }
 
   const renderColorPicker = (field, label) => (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="caption" color="text.secondary" gutterBottom>
+    <Box sx={{ mb: 2, position: 'relative' }}>
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
         {label}
       </Typography>
       <Box
@@ -494,10 +548,13 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
           border: '2px solid rgba(148, 163, 184, 0.3)',
           cursor: 'pointer',
           position: 'relative',
+          '&:hover': {
+            borderColor: 'primary.main',
+          },
         }}
       />
       {colorPickerOpen === field && (
-        <Box sx={{ position: 'absolute', zIndex: 1000, mt: 1 }}>
+        <Box sx={{ position: 'absolute', zIndex: 1000, mt: 1, left: 0 }}>
           <Box
             sx={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
             onClick={() => setColorPickerOpen(null)}
@@ -513,59 +570,64 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Element Type Badge */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Chip
+          label={element.type.replace('dynamic', 'dynamique ').toUpperCase()}
+          size="small"
+          color="primary"
+          variant="outlined"
+        />
+        {element.locked && (
+          <Chip label="Verrouillé" size="small" color="warning" variant="outlined" />
+        )}
+      </Box>
+
       {/* Position */}
       <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
         Position
       </Typography>
-      <Grid container spacing={1} sx={{ mb: 2 }}>
-        <Grid item xs={6}>
-          <TextField
-            label="X"
-            type="number"
-            size="small"
-            fullWidth
-            value={Math.round(element.x)}
-            onChange={(e) => onUpdate(element.id, { x: Number(e.target.value) })}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label="Y"
-            type="number"
-            size="small"
-            fullWidth
-            value={Math.round(element.y)}
-            onChange={(e) => onUpdate(element.id, { y: Number(e.target.value) })}
-          />
-        </Grid>
-      </Grid>
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <TextField
+          label="X"
+          type="number"
+          size="small"
+          fullWidth
+          value={Math.round(element.x)}
+          onChange={(e) => onUpdate(element.id, { x: Number(e.target.value) })}
+        />
+        <TextField
+          label="Y"
+          type="number"
+          size="small"
+          fullWidth
+          value={Math.round(element.y)}
+          onChange={(e) => onUpdate(element.id, { y: Number(e.target.value) })}
+        />
+      </Box>
 
       {/* Taille */}
       <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
         Taille
       </Typography>
-      <Grid container spacing={1} sx={{ mb: 2 }}>
-        <Grid item xs={6}>
-          <TextField
-            label="Largeur"
-            type="number"
-            size="small"
-            fullWidth
-            value={Math.round(element.width)}
-            onChange={(e) => onUpdate(element.id, { width: Number(e.target.value) })}
-          />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label="Hauteur"
-            type="number"
-            size="small"
-            fullWidth
-            value={Math.round(element.height)}
-            onChange={(e) => onUpdate(element.id, { height: Number(e.target.value) })}
-          />
-        </Grid>
-      </Grid>
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <TextField
+          label="Largeur"
+          type="number"
+          size="small"
+          fullWidth
+          value={Math.round(element.width)}
+          onChange={(e) => onUpdate(element.id, { width: Number(e.target.value) })}
+        />
+        <TextField
+          label="Hauteur"
+          type="number"
+          size="small"
+          fullWidth
+          value={Math.round(element.height)}
+          onChange={(e) => onUpdate(element.id, { height: Number(e.target.value) })}
+        />
+      </Box>
 
       {/* Propriétés texte */}
       {(element.type === 'text' || element.type === 'dynamicText') && (
@@ -608,110 +670,136 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
             </FormControl>
           )}
 
-          <Grid container spacing={1} sx={{ mb: 2 }}>
-            <Grid item xs={6}>
-              <FormControl fullWidth size="small">
-                <InputLabel>Police</InputLabel>
-                <Select
-                  value={element.fontFamily}
-                  label="Police"
-                  onChange={(e) => onUpdate(element.id, { fontFamily: e.target.value })}
-                >
-                  <MenuItem value="Arial">Arial</MenuItem>
-                  <MenuItem value="Helvetica">Helvetica</MenuItem>
-                  <MenuItem value="Times New Roman">Times New Roman</MenuItem>
-                  <MenuItem value="Courier New">Courier New</MenuItem>
-                  <MenuItem value="Georgia">Georgia</MenuItem>
-                  <MenuItem value="Verdana">Verdana</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                label="Taille"
-                type="number"
-                size="small"
-                fullWidth
-                value={element.fontSize}
-                onChange={(e) => onUpdate(element.id, { fontSize: Number(e.target.value) })}
-              />
-            </Grid>
-          </Grid>
+          <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Police</InputLabel>
+              <Select
+                value={element.fontFamily}
+                label="Police"
+                onChange={(e) => onUpdate(element.id, { fontFamily: e.target.value })}
+              >
+                <MenuItem value="Arial">Arial</MenuItem>
+                <MenuItem value="Helvetica">Helvetica</MenuItem>
+                <MenuItem value="Times New Roman">Times New Roman</MenuItem>
+                <MenuItem value="Courier New">Courier New</MenuItem>
+                <MenuItem value="Georgia">Georgia</MenuItem>
+                <MenuItem value="Verdana">Verdana</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Taille"
+              type="number"
+              size="small"
+              sx={{ width: 100 }}
+              value={element.fontSize}
+              onChange={(e) => onUpdate(element.id, { fontSize: Number(e.target.value) })}
+            />
+          </Box>
 
-          <Box sx={{ display: 'flex', gap: 0.5, mb: 2 }}>
-            <IconButton
-              size="small"
-              onClick={() =>
-                onUpdate(element.id, {
-                  fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold',
-                })
-              }
-              sx={{
-                bgcolor: element.fontWeight === 'bold' ? 'primary.main' : 'transparent',
-                color: element.fontWeight === 'bold' ? 'white' : 'text.secondary',
-              }}
-            >
-              <BoldIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() =>
-                onUpdate(element.id, {
-                  fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic',
-                })
-              }
-              sx={{
-                bgcolor: element.fontStyle === 'italic' ? 'primary.main' : 'transparent',
-                color: element.fontStyle === 'italic' ? 'white' : 'text.secondary',
-              }}
-            >
-              <ItalicIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() =>
-                onUpdate(element.id, {
-                  textDecoration: element.textDecoration === 'underline' ? 'none' : 'underline',
-                })
-              }
-              sx={{
-                bgcolor: element.textDecoration === 'underline' ? 'primary.main' : 'transparent',
-                color: element.textDecoration === 'underline' ? 'white' : 'text.secondary',
-              }}
-            >
-              <UnderlineIcon fontSize="small" />
-            </IconButton>
+          <Box sx={{ display: 'flex', gap: 0.5, mb: 2, flexWrap: 'wrap' }}>
+            <Tooltip title="Gras">
+              <IconButton
+                size="small"
+                onClick={() =>
+                  onUpdate(element.id, {
+                    fontWeight: element.fontWeight === 'bold' ? 'normal' : 'bold',
+                  })
+                }
+                sx={{
+                  bgcolor: element.fontWeight === 'bold' ? 'primary.main' : 'rgba(255,255,255,0.05)',
+                  color: element.fontWeight === 'bold' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: element.fontWeight === 'bold' ? 'primary.dark' : 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                <BoldIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Italique">
+              <IconButton
+                size="small"
+                onClick={() =>
+                  onUpdate(element.id, {
+                    fontStyle: element.fontStyle === 'italic' ? 'normal' : 'italic',
+                  })
+                }
+                sx={{
+                  bgcolor: element.fontStyle === 'italic' ? 'primary.main' : 'rgba(255,255,255,0.05)',
+                  color: element.fontStyle === 'italic' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: element.fontStyle === 'italic' ? 'primary.dark' : 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                <ItalicIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Souligné">
+              <IconButton
+                size="small"
+                onClick={() =>
+                  onUpdate(element.id, {
+                    textDecoration: element.textDecoration === 'underline' ? 'none' : 'underline',
+                  })
+                }
+                sx={{
+                  bgcolor: element.textDecoration === 'underline' ? 'primary.main' : 'rgba(255,255,255,0.05)',
+                  color: element.textDecoration === 'underline' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: element.textDecoration === 'underline' ? 'primary.dark' : 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                <UnderlineIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
             <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-            <IconButton
-              size="small"
-              onClick={() => onUpdate(element.id, { textAlign: 'left' })}
-              sx={{
-                bgcolor: element.textAlign === 'left' ? 'primary.main' : 'transparent',
-                color: element.textAlign === 'left' ? 'white' : 'text.secondary',
-              }}
-            >
-              <AlignLeftIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => onUpdate(element.id, { textAlign: 'center' })}
-              sx={{
-                bgcolor: element.textAlign === 'center' ? 'primary.main' : 'transparent',
-                color: element.textAlign === 'center' ? 'white' : 'text.secondary',
-              }}
-            >
-              <AlignCenterIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => onUpdate(element.id, { textAlign: 'right' })}
-              sx={{
-                bgcolor: element.textAlign === 'right' ? 'primary.main' : 'transparent',
-                color: element.textAlign === 'right' ? 'white' : 'text.secondary',
-              }}
-            >
-              <AlignRightIcon fontSize="small" />
-            </IconButton>
+            <Tooltip title="Aligner à gauche">
+              <IconButton
+                size="small"
+                onClick={() => onUpdate(element.id, { textAlign: 'left' })}
+                sx={{
+                  bgcolor: element.textAlign === 'left' ? 'primary.main' : 'rgba(255,255,255,0.05)',
+                  color: element.textAlign === 'left' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: element.textAlign === 'left' ? 'primary.dark' : 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                <AlignLeftIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Centrer">
+              <IconButton
+                size="small"
+                onClick={() => onUpdate(element.id, { textAlign: 'center' })}
+                sx={{
+                  bgcolor: element.textAlign === 'center' ? 'primary.main' : 'rgba(255,255,255,0.05)',
+                  color: element.textAlign === 'center' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: element.textAlign === 'center' ? 'primary.dark' : 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                <AlignCenterIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Aligner à droite">
+              <IconButton
+                size="small"
+                onClick={() => onUpdate(element.id, { textAlign: 'right' })}
+                sx={{
+                  bgcolor: element.textAlign === 'right' ? 'primary.main' : 'rgba(255,255,255,0.05)',
+                  color: element.textAlign === 'right' ? 'white' : 'text.secondary',
+                  '&:hover': {
+                    bgcolor: element.textAlign === 'right' ? 'primary.dark' : 'rgba(255,255,255,0.1)',
+                  },
+                }}
+              >
+                <AlignRightIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
           </Box>
 
           {renderColorPicker('color', 'Couleur du texte')}
@@ -726,15 +814,46 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
             Apparence
           </Typography>
           {renderColorPicker('backgroundColor', 'Couleur de fond')}
-          <TextField
-            label="Rayon de bordure"
-            type="number"
-            size="small"
-            fullWidth
-            value={element.borderRadius || 0}
-            onChange={(e) => onUpdate(element.id, { borderRadius: Number(e.target.value) })}
-            sx={{ mb: 2 }}
-          />
+          {element.type === 'rectangle' && (
+            <TextField
+              label="Rayon de bordure"
+              type="number"
+              size="small"
+              fullWidth
+              value={element.borderRadius || 0}
+              onChange={(e) => onUpdate(element.id, { borderRadius: Number(e.target.value) })}
+              sx={{ mb: 2 }}
+            />
+          )}
+        </>
+      )}
+
+      {/* QR Code */}
+      {element.type === 'qrcode' && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            QR Code
+          </Typography>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Variable</InputLabel>
+            <Select
+              value={element.variable}
+              label="Variable"
+              onChange={(e) => onUpdate(element.id, { variable: e.target.value })}
+            >
+              {DYNAMIC_VARIABLES.map((v) => (
+                <MenuItem key={v.id} value={v.id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {v.icon}
+                    {v.label}
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {renderColorPicker('foregroundColor', 'Couleur du QR')}
+          {renderColorPicker('backgroundColor', 'Couleur de fond')}
         </>
       )}
 
@@ -753,6 +872,7 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
           max={1}
           step={0.1}
           onChange={(_, value) => onUpdate(element.id, { opacity: value })}
+          size="small"
         />
       </Box>
       <Box sx={{ mb: 2 }}>
@@ -764,36 +884,60 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
           min={0}
           max={360}
           onChange={(_, value) => onUpdate(element.id, { rotation: value })}
+          size="small"
         />
       </Box>
 
       {/* Actions */}
       <Divider sx={{ my: 2 }} />
-      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+      <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
         <Tooltip title="Dupliquer">
-          <IconButton size="small">
-            <CopyIcon />
+          <IconButton
+            size="small"
+            onClick={() => onDuplicate(element.id)}
+            sx={{
+              bgcolor: 'rgba(99, 102, 241, 0.1)',
+              '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.2)' },
+            }}
+          >
+            <CopyIcon fontSize="small" />
           </IconButton>
         </Tooltip>
         <Tooltip title={element.locked ? 'Déverrouiller' : 'Verrouiller'}>
           <IconButton
             size="small"
             onClick={() => onUpdate(element.id, { locked: !element.locked })}
+            sx={{
+              bgcolor: element.locked ? 'rgba(245, 158, 11, 0.1)' : 'rgba(99, 102, 241, 0.1)',
+              '&:hover': { bgcolor: element.locked ? 'rgba(245, 158, 11, 0.2)' : 'rgba(99, 102, 241, 0.2)' },
+            }}
           >
-            {element.locked ? <LockIcon /> : <UnlockIcon />}
+            {element.locked ? <LockIcon fontSize="small" /> : <UnlockIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
         <Tooltip title={element.visible ? 'Masquer' : 'Afficher'}>
           <IconButton
             size="small"
             onClick={() => onUpdate(element.id, { visible: !element.visible })}
+            sx={{
+              bgcolor: 'rgba(99, 102, 241, 0.1)',
+              '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.2)' },
+            }}
           >
-            {element.visible ? <VisibilityIcon /> : <VisibilityOffIcon />}
+            {element.visible ? <VisibilityIcon fontSize="small" /> : <VisibilityOffIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
         <Tooltip title="Supprimer">
-          <IconButton size="small" color="error" onClick={() => onDelete(element.id)}>
-            <DeleteIcon />
+          <IconButton
+            size="small"
+            color="error"
+            onClick={() => onDelete(element.id)}
+            sx={{
+              bgcolor: 'rgba(239, 68, 68, 0.1)',
+              '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.2)' },
+            }}
+          >
+            <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </Box>
@@ -805,6 +949,9 @@ const PropertiesPanel = ({ element, onUpdate, onDelete }) => {
 function PageEditeurTemplate() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
   const canvasRef = useRef(null);
 
   const [templateName, setTemplateName] = useState('Nouveau Template');
@@ -813,10 +960,10 @@ function PageEditeurTemplate() {
   const [selectedId, setSelectedId] = useState(null);
   const [activeFace, setActiveFace] = useState('recto');
   const [elementsVerso, setElementsVerso] = useState([]);
-  const [scale, setScale] = useState(0.5);
+  const [scale, setScale] = useState(isMobile ? 0.3 : isTablet ? 0.4 : 0.5);
   const [showGrid, setShowGrid] = useState(true);
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [leftPanelOpen, setLeftPanelOpen] = useState(!isMobile);
+  const [rightPanelOpen, setRightPanelOpen] = useState(!isMobile);
   const [saving, setSaving] = useState(false);
 
   const currentElements = activeFace === 'recto' ? elements : elementsVerso;
@@ -829,6 +976,13 @@ function PageEditeurTemplate() {
     }
   }, [id]);
 
+  // Responsive scale adjustment
+  useEffect(() => {
+    setScale(isMobile ? 0.3 : isTablet ? 0.4 : 0.5);
+    setLeftPanelOpen(!isMobile);
+    setRightPanelOpen(!isMobile);
+  }, [isMobile, isTablet]);
+
   const loadTemplate = async (templateId) => {
     try {
       const response = await templatesApi.getById(templateId);
@@ -836,8 +990,6 @@ function PageEditeurTemplate() {
         const template = response.donnees;
         setTemplateName(template.nom);
         setTemplateType(template.type);
-        // Parse elements from HTML if stored
-        // For now, start fresh
       }
     } catch (error) {
       toast.error('Erreur lors du chargement du template');
@@ -857,6 +1009,12 @@ function PageEditeurTemplate() {
 
     setCurrentElements([...currentElements, newElement]);
     setSelectedId(newElement.id);
+
+    // Open properties panel on mobile when element is added
+    if (isMobile) {
+      setRightPanelOpen(true);
+      setLeftPanelOpen(false);
+    }
   };
 
   const updateElement = (id, updates) => {
@@ -868,6 +1026,20 @@ function PageEditeurTemplate() {
   const deleteElement = (id) => {
     setCurrentElements(currentElements.filter((el) => el.id !== id));
     if (selectedId === id) setSelectedId(null);
+  };
+
+  const duplicateElement = (id) => {
+    const element = currentElements.find((el) => el.id === id);
+    if (element) {
+      const newElement = {
+        ...element,
+        id: uuidv4(),
+        x: element.x + 20,
+        y: element.y + 20,
+      };
+      setCurrentElements([...currentElements, newElement]);
+      setSelectedId(newElement.id);
+    }
   };
 
   const handleCanvasClick = (e) => {
@@ -908,6 +1080,9 @@ function PageEditeurTemplate() {
         case 'circle':
           html += `<div style="${style}; background-color: ${el.backgroundColor}; border-radius: 50%; border: ${el.border || 'none'};"></div>`;
           break;
+        case 'qrcode':
+          html += `<div style="${style}; display: flex; align-items: center; justify-content: center;">{{qrcode ${el.variable}}}</div>`;
+          break;
       }
     });
 
@@ -924,7 +1099,7 @@ function PageEditeurTemplate() {
         largeur_mm: CARD_WIDTH_MM,
         hauteur_mm: CARD_HEIGHT_MM,
         html_recto: generateHtml(),
-        html_verso: activeFace === 'verso' || elementsVerso.length > 0 ? generateHtml() : null,
+        html_verso: elementsVerso.length > 0 ? generateHtml() : null,
         champs_dynamiques: [...new Set(currentElements.filter(el => el.type === 'dynamicText').map(el => el.variable))],
       };
 
@@ -943,301 +1118,417 @@ function PageEditeurTemplate() {
     }
   };
 
+  const leftPanelWidth = isMobile ? '100%' : 260;
+  const rightPanelWidth = isMobile ? '100%' : 280;
+
   return (
-    <Box sx={{ display: 'flex', height: 'calc(100vh - 100px)', overflow: 'hidden', mx: -3, mt: -3 }}>
-      {/* Left Panel - Elements Library */}
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)', overflow: 'hidden', mx: -3, mt: -3 }}>
+      {/* Top Toolbar */}
       <Paper
         sx={{
-          width: leftPanelOpen ? 280 : 0,
-          overflow: 'hidden',
-          transition: 'width 0.3s',
           display: 'flex',
-          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 2,
+          py: 1,
           borderRadius: 0,
-          borderRight: '1px solid rgba(148, 163, 184, 0.1)',
+          borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+          flexWrap: 'wrap',
+          gap: 1,
         }}
       >
-        <Box className="panel-header">
-          <LayersIcon sx={{ fontSize: 20 }} />
-          Éléments
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Tooltip title="Retour">
+            <IconButton onClick={() => navigate('/templates')} size="small">
+              <ArrowBackIcon />
+            </IconButton>
+          </Tooltip>
+          <TextField
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            variant="standard"
+            sx={{
+              '& input': { fontSize: '1rem', fontWeight: 600 },
+              width: isMobile ? 120 : 180,
+            }}
+          />
         </Box>
-        <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
-          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Texte
-          </Typography>
-          <Box
-            className="element-library-item"
-            onClick={() => addElement('text')}
-            sx={{ mb: 1 }}
-          >
-            <TextFieldsIcon sx={{ color: 'primary.main' }} />
-            <Typography variant="body2">Texte statique</Typography>
-          </Box>
-          <Box
-            className="element-library-item"
-            onClick={() => addElement('dynamicText')}
-            sx={{ mb: 2 }}
-          >
-            <BadgeIcon sx={{ color: 'secondary.main' }} />
-            <Typography variant="body2">Champ dynamique</Typography>
-          </Box>
 
-          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Images
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Tooltip title="Zoom arrière">
+            <IconButton size="small" onClick={() => setScale(Math.max(0.2, scale - 0.1))}>
+              <ZoomOutIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Typography variant="body2" sx={{ minWidth: 45, textAlign: 'center', fontSize: '0.75rem' }}>
+            {Math.round(scale * 100)}%
           </Typography>
-          <Box
-            className="element-library-item"
-            onClick={() => addElement('photo')}
-            sx={{ mb: 1 }}
-          >
-            <PersonIcon sx={{ color: 'info.main' }} />
-            <Typography variant="body2">Photo d'identité</Typography>
-          </Box>
-          <Box
-            className="element-library-item"
-            onClick={() => addElement('image')}
-            sx={{ mb: 2 }}
-          >
-            <ImageIcon sx={{ color: 'success.main' }} />
-            <Typography variant="body2">Image / Logo</Typography>
-          </Box>
+          <Tooltip title="Zoom avant">
+            <IconButton size="small" onClick={() => setScale(Math.min(2, scale + 0.1))}>
+              <ZoomInIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <Tooltip title={showGrid ? 'Masquer grille' : 'Afficher grille'}>
+            <IconButton
+              size="small"
+              onClick={() => setShowGrid(!showGrid)}
+              sx={{ color: showGrid ? 'primary.main' : 'text.secondary' }}
+            >
+              <GridIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
 
-          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Formes
-          </Typography>
-          <Box
-            className="element-library-item"
-            onClick={() => addElement('rectangle')}
-            sx={{ mb: 1 }}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Tabs
+            value={activeFace}
+            onChange={(_, v) => setActiveFace(v)}
+            sx={{ minHeight: 32 }}
           >
-            <RectangleIcon sx={{ color: '#3b82f6' }} />
-            <Typography variant="body2">Rectangle</Typography>
-          </Box>
-          <Box
-            className="element-library-item"
-            onClick={() => addElement('circle')}
-            sx={{ mb: 2 }}
+            <Tab label="Recto" value="recto" sx={{ minHeight: 32, py: 0, px: 1.5, fontSize: '0.75rem' }} />
+            <Tab label="Verso" value="verso" sx={{ minHeight: 32, py: 0, px: 1.5, fontSize: '0.75rem' }} />
+          </Tabs>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+            disabled={saving}
+            size="small"
+            sx={{ fontSize: '0.75rem' }}
           >
-            <CircleIcon sx={{ color: '#ec4899' }} />
-            <Typography variant="body2">Cercle</Typography>
-          </Box>
-
-          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Codes
-          </Typography>
-          <Box
-            className="element-library-item"
-            onClick={() => addElement('qrcode')}
-          >
-            <QrCodeIcon sx={{ color: '#10b981' }} />
-            <Typography variant="body2">QR Code</Typography>
-          </Box>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-            Variables disponibles
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-            {DYNAMIC_VARIABLES.slice(0, 8).map((v) => (
-              <Chip
-                key={v.id}
-                label={v.label}
-                size="small"
-                variant="outlined"
-                sx={{ fontSize: '0.7rem' }}
-              />
-            ))}
-          </Box>
+            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+          </Button>
         </Box>
       </Paper>
 
-      {/* Center - Canvas */}
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', bgcolor: '#0a0a1a' }}>
-        {/* Toolbar */}
+      {/* Main Content */}
+      <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden', position: 'relative' }}>
+        {/* Left Panel Toggle (Mobile) */}
+        {isMobile && (
+          <IconButton
+            onClick={() => { setLeftPanelOpen(!leftPanelOpen); setRightPanelOpen(false); }}
+            sx={{
+              position: 'absolute',
+              left: 8,
+              top: 8,
+              zIndex: 10,
+              bgcolor: 'background.paper',
+              boxShadow: 2,
+            }}
+          >
+            <LayersIcon />
+          </IconButton>
+        )}
+
+        {/* Left Panel - Elements Library */}
         <Paper
           sx={{
+            width: leftPanelOpen ? leftPanelWidth : 0,
+            minWidth: leftPanelOpen ? leftPanelWidth : 0,
+            overflow: 'hidden',
+            transition: 'all 0.3s',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            px: 2,
-            py: 1,
+            flexDirection: 'column',
             borderRadius: 0,
-            borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+            borderRight: '1px solid rgba(148, 163, 184, 0.1)',
+            position: isMobile ? 'absolute' : 'relative',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: isMobile ? 20 : 1,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Tooltip title="Retour">
-              <IconButton onClick={() => navigate('/templates')}>
-                <ArrowBackIcon />
+          <Box
+            sx={{
+              p: 2,
+              borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <LayersIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+              <Typography variant="subtitle2" fontWeight={600}>
+                Éléments
+              </Typography>
+            </Box>
+            {!isMobile && (
+              <IconButton size="small" onClick={() => setLeftPanelOpen(false)}>
+                <ChevronLeftIcon fontSize="small" />
               </IconButton>
-            </Tooltip>
-            <TextField
-              value={templateName}
-              onChange={(e) => setTemplateName(e.target.value)}
-              variant="standard"
-              sx={{
-                '& input': { fontSize: '1.1rem', fontWeight: 600 },
-                width: 200,
-              }}
-            />
+            )}
+            {isMobile && (
+              <IconButton size="small" onClick={() => setLeftPanelOpen(false)}>
+                <ChevronLeftIcon fontSize="small" />
+              </IconButton>
+            )}
           </Box>
-
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            <Tooltip title="Annuler">
-              <IconButton size="small">
-                <UndoIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Rétablir">
-              <IconButton size="small">
-                <RedoIcon />
-              </IconButton>
-            </Tooltip>
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-            <Tooltip title="Zoom arrière">
-              <IconButton size="small" onClick={() => setScale(Math.max(0.2, scale - 0.1))}>
-                <ZoomOutIcon />
-              </IconButton>
-            </Tooltip>
-            <Typography variant="body2" sx={{ minWidth: 50, textAlign: 'center' }}>
-              {Math.round(scale * 100)}%
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
+              Texte
             </Typography>
-            <Tooltip title="Zoom avant">
-              <IconButton size="small" onClick={() => setScale(Math.min(2, scale + 0.1))}>
-                <ZoomInIcon />
-              </IconButton>
-            </Tooltip>
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-            <Tooltip title={showGrid ? 'Masquer grille' : 'Afficher grille'}>
-              <IconButton
-                size="small"
-                onClick={() => setShowGrid(!showGrid)}
-                sx={{ color: showGrid ? 'primary.main' : 'text.secondary' }}
-              >
-                <GridIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+              <ElementLibraryItem
+                icon={<TextFieldsIcon />}
+                label="Texte statique"
+                color="#6366f1"
+                onClick={() => addElement('text')}
+              />
+              <ElementLibraryItem
+                icon={<BadgeIcon />}
+                label="Champ dynamique"
+                color="#8b5cf6"
+                onClick={() => addElement('dynamicText')}
+              />
+            </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Tabs
-              value={activeFace}
-              onChange={(_, v) => setActiveFace(v)}
-              sx={{ minHeight: 36 }}
-            >
-              <Tab label="Recto" value="recto" sx={{ minHeight: 36, py: 0 }} />
-              <Tab label="Verso" value="verso" sx={{ minHeight: 36, py: 0 }} />
-            </Tabs>
-            <Divider orientation="vertical" flexItem sx={{ mx: 1 }} />
-            <Button
-              variant="outlined"
-              startIcon={<PreviewIcon />}
-              size="small"
-            >
-              Aperçu
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<SaveIcon />}
-              onClick={handleSave}
-              disabled={saving}
-              size="small"
-            >
-              {saving ? 'Sauvegarde...' : 'Sauvegarder'}
-            </Button>
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
+              Images
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+              <ElementLibraryItem
+                icon={<PersonIcon />}
+                label="Photo d'identité"
+                color="#3b82f6"
+                onClick={() => addElement('photo')}
+              />
+              <ElementLibraryItem
+                icon={<ImageIcon />}
+                label="Image / Logo"
+                color="#10b981"
+                onClick={() => addElement('image')}
+              />
+            </Box>
+
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
+              Formes
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+              <ElementLibraryItem
+                icon={<RectangleIcon />}
+                label="Rectangle"
+                color="#3b82f6"
+                onClick={() => addElement('rectangle')}
+              />
+              <ElementLibraryItem
+                icon={<CircleIcon />}
+                label="Cercle"
+                color="#ec4899"
+                onClick={() => addElement('circle')}
+              />
+            </Box>
+
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
+              Codes
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+              <ElementLibraryItem
+                icon={<QrCodeIcon />}
+                label="QR Code"
+                color="#10b981"
+                onClick={() => addElement('qrcode')}
+              />
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
+              Variables
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+              {DYNAMIC_VARIABLES.slice(0, 8).map((v) => (
+                <Chip
+                  key={v.id}
+                  label={v.label}
+                  size="small"
+                  variant="outlined"
+                  sx={{ fontSize: '0.6rem', height: 20 }}
+                />
+              ))}
+            </Box>
           </Box>
         </Paper>
+
+        {/* Toggle Left Panel Button (Desktop) */}
+        {!isMobile && !leftPanelOpen && (
+          <IconButton
+            onClick={() => setLeftPanelOpen(true)}
+            sx={{
+              position: 'absolute',
+              left: 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              bgcolor: 'background.paper',
+              boxShadow: 2,
+              zIndex: 5,
+            }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        )}
 
         {/* Canvas Area */}
         <Box
           sx={{
             flex: 1,
-            overflow: 'auto',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            p: 4,
+            flexDirection: 'column',
+            bgcolor: '#0a0a1a',
+            overflow: 'hidden',
           }}
         >
-          <Paper
-            ref={canvasRef}
-            onClick={handleCanvasClick}
+          <Box
             sx={{
-              width: CARD_WIDTH_PX * scale,
-              height: CARD_HEIGHT_PX * scale,
-              bgcolor: 'white',
-              borderRadius: 2,
-              position: 'relative',
-              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
-              overflow: 'hidden',
-              backgroundImage: showGrid
-                ? `
-                  linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)
-                `
-                : 'none',
-              backgroundSize: `${10 * scale}px ${10 * scale}px`,
+              flex: 1,
+              overflow: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              p: 2,
             }}
           >
-            {currentElements.map((element) => (
-              <CanvasElement
-                key={element.id}
-                element={element}
-                selected={selectedId === element.id}
-                onSelect={setSelectedId}
-                onUpdate={updateElement}
-                scale={scale}
-                showGrid={showGrid}
-              />
-            ))}
-          </Paper>
+            <Paper
+              ref={canvasRef}
+              onClick={handleCanvasClick}
+              sx={{
+                width: CARD_WIDTH_PX * scale,
+                height: CARD_HEIGHT_PX * scale,
+                minWidth: CARD_WIDTH_PX * scale,
+                minHeight: CARD_HEIGHT_PX * scale,
+                bgcolor: 'white',
+                borderRadius: 2,
+                position: 'relative',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
+                overflow: 'hidden',
+                backgroundImage: showGrid
+                  ? `
+                    linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)
+                  `
+                  : 'none',
+                backgroundSize: `${10 * scale}px ${10 * scale}px`,
+              }}
+            >
+              {currentElements.map((element) => (
+                <CanvasElement
+                  key={element.id}
+                  element={element}
+                  selected={selectedId === element.id}
+                  onSelect={setSelectedId}
+                  onUpdate={updateElement}
+                  scale={scale}
+                  showGrid={showGrid}
+                />
+              ))}
+            </Paper>
+          </Box>
+
+          {/* Footer info */}
+          <Box
+            sx={{
+              px: 2,
+              py: 1,
+              borderTop: '1px solid rgba(148, 163, 184, 0.1)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 1,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              CR80 ({CARD_WIDTH_MM}mm × {CARD_HEIGHT_MM}mm) • 300 DPI • NFC NTAG 216
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {currentElements.length} élément{currentElements.length > 1 ? 's' : ''}
+            </Typography>
+          </Box>
         </Box>
 
-        {/* Footer info */}
-        <Box
+        {/* Toggle Right Panel Button (Desktop) */}
+        {!isMobile && !rightPanelOpen && (
+          <IconButton
+            onClick={() => setRightPanelOpen(true)}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              bgcolor: 'background.paper',
+              boxShadow: 2,
+              zIndex: 5,
+            }}
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+        )}
+
+        {/* Right Panel Toggle (Mobile) */}
+        {isMobile && (
+          <IconButton
+            onClick={() => { setRightPanelOpen(!rightPanelOpen); setLeftPanelOpen(false); }}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              zIndex: 10,
+              bgcolor: 'background.paper',
+              boxShadow: 2,
+            }}
+          >
+            <SettingsIcon />
+          </IconButton>
+        )}
+
+        {/* Right Panel - Properties */}
+        <Paper
           sx={{
-            px: 2,
-            py: 1,
-            borderTop: '1px solid rgba(148, 163, 184, 0.1)',
+            width: rightPanelOpen ? rightPanelWidth : 0,
+            minWidth: rightPanelOpen ? rightPanelWidth : 0,
+            overflow: 'hidden',
+            transition: 'all 0.3s',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: 'column',
+            borderRadius: 0,
+            borderLeft: '1px solid rgba(148, 163, 184, 0.1)',
+            position: isMobile ? 'absolute' : 'relative',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: isMobile ? 20 : 1,
           }}
         >
-          <Typography variant="caption" color="text.secondary">
-            Format: CR80 ({CARD_WIDTH_MM}mm × {CARD_HEIGHT_MM}mm) • 300 DPI
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {currentElements.length} élément{currentElements.length > 1 ? 's' : ''}
-          </Typography>
-        </Box>
+          <Box
+            sx={{
+              p: 2,
+              borderBottom: '1px solid rgba(148, 163, 184, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SettingsIcon sx={{ fontSize: 18, color: 'primary.main' }} />
+              <Typography variant="subtitle2" fontWeight={600}>
+                Propriétés
+              </Typography>
+            </Box>
+            <IconButton size="small" onClick={() => setRightPanelOpen(false)}>
+              <ChevronRightIcon fontSize="small" />
+            </IconButton>
+          </Box>
+          <Box sx={{ flex: 1, overflow: 'auto' }}>
+            <PropertiesPanel
+              element={selectedElement}
+              onUpdate={updateElement}
+              onDelete={deleteElement}
+              onDuplicate={duplicateElement}
+            />
+          </Box>
+        </Paper>
       </Box>
-
-      {/* Right Panel - Properties */}
-      <Paper
-        sx={{
-          width: rightPanelOpen ? 300 : 0,
-          overflow: 'hidden',
-          transition: 'width 0.3s',
-          display: 'flex',
-          flexDirection: 'column',
-          borderRadius: 0,
-          borderLeft: '1px solid rgba(148, 163, 184, 0.1)',
-        }}
-      >
-        <Box className="panel-header">
-          <SettingsIcon sx={{ fontSize: 20 }} />
-          Propriétés
-        </Box>
-        <Box sx={{ flex: 1, overflow: 'auto' }}>
-          <PropertiesPanel
-            element={selectedElement}
-            onUpdate={updateElement}
-            onDelete={deleteElement}
-          />
-        </Box>
-      </Paper>
     </Box>
   );
 }
