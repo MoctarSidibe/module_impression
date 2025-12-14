@@ -1,7 +1,7 @@
 # Backend Dockerfile - CardPrint Pro
 FROM node:18-alpine
 
-# Installer les dépendances système pour better-sqlite3 et Puppeteer
+# Installer les dépendances système pour better-sqlite3, Puppeteer et nfc-pcsc
 RUN apk add --no-cache \
     python3 \
     make \
@@ -13,7 +13,9 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    curl
+    curl \
+    pcsc-lite \
+    pcsc-lite-dev
 
 # Variables d'environnement pour Puppeteer
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
@@ -26,7 +28,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Installer les dépendances
-RUN npm ci --only=production
+RUN npm install --only=production
 
 # Copier le code source
 COPY . .
