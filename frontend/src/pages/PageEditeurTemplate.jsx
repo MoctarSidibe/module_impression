@@ -60,6 +60,10 @@ import {
   ChevronLeft as ChevronLeftIcon,
   ChevronRight as ChevronRightIcon,
   DragIndicator as DragIcon,
+  Palette as PaletteIcon,
+  HorizontalRule as LineIcon,
+  Gradient as GradientIcon,
+  ViewWeek as BarcodeIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -205,6 +209,49 @@ const ELEMENT_TEMPLATES = {
     height: 60,
     backgroundColor: '#ffffff',
     foregroundColor: '#000000',
+    rotation: 0,
+    opacity: 1,
+    locked: false,
+    visible: true,
+  },
+  barcode: {
+    type: 'barcode',
+    variable: 'numero_carte',
+    x: 50,
+    y: 180,
+    width: 150,
+    height: 40,
+    backgroundColor: '#ffffff',
+    foregroundColor: '#000000',
+    format: 'CODE128',
+    rotation: 0,
+    opacity: 1,
+    locked: false,
+    visible: true,
+  },
+  line: {
+    type: 'line',
+    x: 50,
+    y: 100,
+    width: 200,
+    height: 2,
+    backgroundColor: '#000000',
+    rotation: 0,
+    opacity: 1,
+    locked: false,
+    visible: true,
+  },
+  gradient: {
+    type: 'gradient',
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 100,
+    gradientType: 'linear',
+    gradientDirection: 'to right',
+    color1: '#3b82f6',
+    color2: '#8b5cf6',
+    borderRadius: 0,
     rotation: 0,
     opacity: 1,
     locked: false,
@@ -387,6 +434,27 @@ const CanvasElement = ({
           alignItems: 'center',
           justifyContent: 'center',
         };
+      case 'barcode':
+        return {
+          ...baseStyle,
+          backgroundColor: element.backgroundColor,
+          display: element.visible ? 'flex' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+        };
+      case 'line':
+        return {
+          ...baseStyle,
+          backgroundColor: element.backgroundColor,
+        };
+      case 'gradient':
+        return {
+          ...baseStyle,
+          background: element.gradientType === 'radial'
+            ? `radial-gradient(circle, ${element.color1}, ${element.color2})`
+            : `linear-gradient(${element.gradientDirection}, ${element.color1}, ${element.color2})`,
+          borderRadius: element.borderRadius * scale,
+        };
       default:
         return baseStyle;
     }
@@ -464,6 +532,34 @@ const CanvasElement = ({
             ))}
           </Box>
         );
+      case 'barcode':
+        return (
+          <Box
+            sx={{
+              width: '90%',
+              height: '70%',
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
+              gap: '1px',
+            }}
+          >
+            {[...Array(30)].map((_, i) => (
+              <Box
+                key={i}
+                sx={{
+                  width: i % 3 === 0 ? 3 : 2,
+                  height: `${60 + (i % 5) * 8}%`,
+                  bgcolor: element.foregroundColor,
+                }}
+              />
+            ))}
+          </Box>
+        );
+      case 'line':
+        return null; // Line is just a colored box
+      case 'gradient':
+        return null; // Gradient is handled by CSS background
       default:
         return null;
     }
@@ -857,6 +953,118 @@ const PropertiesPanel = ({ element, onUpdate, onDelete, onDuplicate }) => {
         </>
       )}
 
+      {/* Barcode */}
+      {element.type === 'barcode' && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Code-barres
+          </Typography>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Variable</InputLabel>
+            <Select
+              value={element.variable}
+              label="Variable"
+              onChange={(e) => onUpdate(element.id, { variable: e.target.value })}
+            >
+              {DYNAMIC_VARIABLES.map((v) => (
+                <MenuItem key={v.id} value={v.id}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {v.icon}
+                    {v.label}
+                  </Box>
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Format</InputLabel>
+            <Select
+              value={element.format || 'CODE128'}
+              label="Format"
+              onChange={(e) => onUpdate(element.id, { format: e.target.value })}
+            >
+              <MenuItem value="CODE128">Code 128</MenuItem>
+              <MenuItem value="CODE39">Code 39</MenuItem>
+              <MenuItem value="EAN13">EAN-13</MenuItem>
+              <MenuItem value="EAN8">EAN-8</MenuItem>
+              <MenuItem value="UPC">UPC</MenuItem>
+            </Select>
+          </FormControl>
+          {renderColorPicker('foregroundColor', 'Couleur des barres')}
+          {renderColorPicker('backgroundColor', 'Couleur de fond')}
+        </>
+      )}
+
+      {/* Line */}
+      {element.type === 'line' && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Ligne
+          </Typography>
+          {renderColorPicker('backgroundColor', 'Couleur de la ligne')}
+          <TextField
+            label="Épaisseur"
+            type="number"
+            size="small"
+            fullWidth
+            value={element.height || 2}
+            onChange={(e) => onUpdate(element.id, { height: Number(e.target.value) })}
+            sx={{ mb: 2 }}
+          />
+        </>
+      )}
+
+      {/* Gradient */}
+      {element.type === 'gradient' && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Dégradé
+          </Typography>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Type</InputLabel>
+            <Select
+              value={element.gradientType || 'linear'}
+              label="Type"
+              onChange={(e) => onUpdate(element.id, { gradientType: e.target.value })}
+            >
+              <MenuItem value="linear">Linéaire</MenuItem>
+              <MenuItem value="radial">Radial</MenuItem>
+            </Select>
+          </FormControl>
+          {element.gradientType !== 'radial' && (
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel>Direction</InputLabel>
+              <Select
+                value={element.gradientDirection || 'to right'}
+                label="Direction"
+                onChange={(e) => onUpdate(element.id, { gradientDirection: e.target.value })}
+              >
+                <MenuItem value="to right">Droite</MenuItem>
+                <MenuItem value="to left">Gauche</MenuItem>
+                <MenuItem value="to bottom">Bas</MenuItem>
+                <MenuItem value="to top">Haut</MenuItem>
+                <MenuItem value="to bottom right">Diagonale bas-droite</MenuItem>
+                <MenuItem value="to bottom left">Diagonale bas-gauche</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          {renderColorPicker('color1', 'Couleur 1')}
+          {renderColorPicker('color2', 'Couleur 2')}
+          <TextField
+            label="Rayon de bordure"
+            type="number"
+            size="small"
+            fullWidth
+            value={element.borderRadius || 0}
+            onChange={(e) => onUpdate(element.id, { borderRadius: Number(e.target.value) })}
+            sx={{ mb: 2 }}
+          />
+        </>
+      )}
+
       {/* Opacité et rotation */}
       <Divider sx={{ my: 2 }} />
       <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
@@ -965,6 +1173,9 @@ function PageEditeurTemplate() {
   const [leftPanelOpen, setLeftPanelOpen] = useState(!isMobile);
   const [rightPanelOpen, setRightPanelOpen] = useState(!isMobile);
   const [saving, setSaving] = useState(false);
+  const [cardBackgroundColor, setCardBackgroundColor] = useState('#ffffff');
+  const [cardBackgroundColorVerso, setCardBackgroundColorVerso] = useState('#ffffff');
+  const [showCardColorPicker, setShowCardColorPicker] = useState(false);
 
   const currentElements = activeFace === 'recto' ? elements : elementsVerso;
   const setCurrentElements = activeFace === 'recto' ? setElements : setElementsVerso;
@@ -1318,6 +1529,18 @@ function PageEditeurTemplate() {
                 color="#ec4899"
                 onClick={() => addElement('circle')}
               />
+              <ElementLibraryItem
+                icon={<LineIcon />}
+                label="Ligne"
+                color="#64748b"
+                onClick={() => addElement('line')}
+              />
+              <ElementLibraryItem
+                icon={<GradientIcon />}
+                label="Dégradé"
+                color="#f59e0b"
+                onClick={() => addElement('gradient')}
+              />
             </Box>
 
             <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
@@ -1330,6 +1553,76 @@ function PageEditeurTemplate() {
                 color="#10b981"
                 onClick={() => addElement('qrcode')}
               />
+              <ElementLibraryItem
+                icon={<BarcodeIcon />}
+                label="Code-barres"
+                color="#06b6d4"
+                onClick={() => addElement('barcode')}
+              />
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
+              Fond de carte
+            </Typography>
+            <Box sx={{ position: 'relative', mb: 2 }}>
+              <Box
+                onClick={() => setShowCardColorPicker(!showCardColorPicker)}
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  p: 1.5,
+                  borderRadius: 2,
+                  cursor: 'pointer',
+                  bgcolor: 'rgba(15, 15, 35, 0.5)',
+                  border: '1px solid rgba(148, 163, 184, 0.1)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    bgcolor: 'rgba(99, 102, 241, 0.15)',
+                    borderColor: 'rgba(99, 102, 241, 0.3)',
+                  },
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 1.5,
+                    bgcolor: activeFace === 'recto' ? cardBackgroundColor : cardBackgroundColorVerso,
+                    border: '2px solid rgba(148, 163, 184, 0.3)',
+                    flexShrink: 0,
+                  }}
+                />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" fontWeight={500} noWrap>
+                    Couleur de fond
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                    {activeFace === 'recto' ? cardBackgroundColor : cardBackgroundColorVerso}
+                  </Typography>
+                </Box>
+                <PaletteIcon sx={{ color: 'text.disabled', fontSize: 18 }} />
+              </Box>
+              {showCardColorPicker && (
+                <Box sx={{ position: 'absolute', zIndex: 1000, mt: 1, left: 0 }}>
+                  <Box
+                    sx={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+                    onClick={() => setShowCardColorPicker(false)}
+                  />
+                  <SketchPicker
+                    color={activeFace === 'recto' ? cardBackgroundColor : cardBackgroundColorVerso}
+                    onChange={(color) => {
+                      if (activeFace === 'recto') {
+                        setCardBackgroundColor(color.hex);
+                      } else {
+                        setCardBackgroundColorVerso(color.hex);
+                      }
+                    }}
+                  />
+                </Box>
+              )}
             </Box>
 
             <Divider sx={{ my: 2 }} />
@@ -1397,7 +1690,7 @@ function PageEditeurTemplate() {
                 height: CARD_HEIGHT_PX * scale,
                 minWidth: CARD_WIDTH_PX * scale,
                 minHeight: CARD_HEIGHT_PX * scale,
-                bgcolor: 'white',
+                bgcolor: activeFace === 'recto' ? cardBackgroundColor : cardBackgroundColorVerso,
                 borderRadius: 2,
                 position: 'relative',
                 boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',

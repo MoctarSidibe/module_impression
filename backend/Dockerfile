@@ -2,6 +2,8 @@
 FROM node:18-alpine
 
 # Installer les dépendances système pour better-sqlite3 et Puppeteer
+# Note: nfc-pcsc n'est pas supporté en Alpine (pas de pcsclite)
+# Le backend fonctionnera en mode simulation NFC
 RUN apk add --no-cache \
     python3 \
     make \
@@ -15,9 +17,11 @@ RUN apk add --no-cache \
     ttf-freefont \
     curl
 
-# Variables d'environnement pour Puppeteer
+# Variables d'environnement pour Puppeteer et NFC
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    NFC_SIMULATION_MODE=true \
+    NODE_ENV=production
 
 # Créer le répertoire de travail
 WORKDIR /app
@@ -25,20 +29,25 @@ WORKDIR /app
 # Copier les fichiers package
 COPY package*.json ./
 
-# Installer les dépendances
-RUN npm ci --only=production
+# Installer les dépendances (ignorer les erreurs de modules optionnels comme nfc-pcsc)
+# nfc-pcsc nécessite pcsclite qui n'est pas disponible en Alpine
+RUN npm ci --only=production --ignore-scripts || npm install --only=production --ignore-scripts
 
 # Copier le code source
 COPY . .
 
 # Créer les répertoires nécessaires
-RUN mkdir -p data uploads/photos uploads/pdf
+RUN mkdir -p data uploads/photos uploads/pdf templates
 
 # Initialiser la base de données si elle n'existe pas
 RUN node src/scripts/initDb.js || true
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/api/sante || exit 1
+
 # Exposer le port
 EXPOSE 3001
 
-# Commande de démarrage
+# Commande de démarrage avec message de bienvenue
 CMD ["node", "src/index.js"]

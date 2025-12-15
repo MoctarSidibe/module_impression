@@ -232,6 +232,14 @@ export const nfcApi = {
   },
 
   /**
+   * Récupérer les infos de la carte NTAG 216
+   */
+  getInfoCarte: async () => {
+    const response = await api.get('/nfc/info-carte');
+    return response.data;
+  },
+
+  /**
    * Lire une carte
    */
   lire: async (lecteur) => {
@@ -244,6 +252,66 @@ export const nfcApi = {
    */
   ecrire: async (donnees, lecteur) => {
     const response = await api.post('/nfc/ecrire', { donnees, lecteur });
+    return response.data;
+  },
+
+  /**
+   * Formater une carte
+   */
+  formater: async (lecteur) => {
+    const response = await api.post('/nfc/formater', { lecteur });
+    return response.data;
+  },
+};
+
+// ============== IMPRIMANTE ==============
+
+export const imprimanteApi = {
+  /**
+   * Récupérer le statut de l'imprimante
+   */
+  getStatus: async () => {
+    const response = await api.get('/imprimante/status');
+    return response.data;
+  },
+
+  /**
+   * Récupérer la liste des imprimantes
+   */
+  getListe: async () => {
+    const response = await api.get('/imprimante/liste');
+    return response.data;
+  },
+
+  /**
+   * Scanner les imprimantes disponibles
+   */
+  scanner: async () => {
+    const response = await api.get('/imprimante/scanner');
+    return response.data;
+  },
+
+  /**
+   * Sélectionner une imprimante
+   */
+  selectionner: async (nom) => {
+    const response = await api.post('/imprimante/selectionner', { nom });
+    return response.data;
+  },
+
+  /**
+   * Vérifier si l'imprimante est prête
+   */
+  estPrete: async () => {
+    const response = await api.get('/imprimante/prete');
+    return response.data;
+  },
+
+  /**
+   * Récupérer la configuration de l'imprimante
+   */
+  getConfig: async () => {
+    const response = await api.get('/imprimante/config');
     return response.data;
   },
 };

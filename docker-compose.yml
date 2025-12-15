@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Backend API
+  # Backend API - CardPrint Pro
   backend:
     build:
       context: ./backend
@@ -13,14 +13,17 @@ services:
     volumes:
       - ./backend/data:/app/data
       - ./backend/uploads:/app/uploads
+      - ./backend/templates:/app/templates
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - NFC_SIMULATION_MODE=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/api/sante"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
     networks:
       - cardprint-network
 
@@ -34,7 +37,8 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       - VITE_API_URL=http://localhost:3001
     networks:
