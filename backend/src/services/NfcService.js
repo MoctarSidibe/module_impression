@@ -1,39 +1,51 @@
 /**
- * Service NFC
+ * Service NFC - NTAG 216
  * Gère l'encodage des cartes NFC via le lecteur intégré de l'imprimante Luca 40 KM
- * Utilise la bibliothèque nfc-pcsc pour la communication avec les lecteurs PC/SC
  *
- * Type de carte principal: NTAG 216
+ * Type de carte supporté: NTAG 216
  * - Mémoire: 888 bytes (924 bytes totale)
  * - Pages: 231 pages de 4 bytes
  * - UID: 7 bytes
  * - URL/Texte NDEF supporté
  * - Protection par mot de passe disponible
+ *
+ * Mode simulation activé automatiquement si:
+ * - Le module nfc-pcsc n'est pas installé
+ * - Aucun lecteur NFC n'est détecté
+ * - L'imprimante n'est pas connectée
  */
-
-let NFC;
-try {
-  NFC = require('nfc-pcsc').NFC;
-} catch (error) {
-  console.warn('⚠️ Module nfc-pcsc non disponible. Les fonctionnalités NFC seront simulées.');
-  NFC = null;
-}
 
 // Constantes NTAG 216
 const NTAG216_CONFIG = {
   nom: 'NTAG 216',
-  memoire_totale: 924,      // bytes
-  memoire_utilisable: 888,  // bytes
+  fabricant: 'NXP Semiconductors',
+  memoire_totale: 924,
+  memoire_utilisable: 888,
   pages_totales: 231,
-  pages_utilisateur: 222,   // Pages 4-225 pour données utilisateur
-  taille_page: 4,           // bytes par page
-  uid_taille: 7,            // bytes
-  page_debut_donnees: 4,    // Première page pour données utilisateur
-  page_fin_donnees: 225,    // Dernière page pour données utilisateur
-  page_config: 227,         // Page de configuration
-  page_password: 229,       // Page mot de passe
-  max_ndef_message: 868,    // Taille max message NDEF
+  pages_utilisateur: 222,
+  taille_page: 4,
+  uid_taille: 7,
+  page_debut_donnees: 4,
+  page_fin_donnees: 225,
+  page_config: 227,
+  page_password: 229,
+  max_ndef_message: 868,
 };
+
+// Tenter de charger nfc-pcsc (optionnel)
+let NFC = null;
+let nfcDisponible = false;
+let nfcErreur = null;
+
+try {
+  NFC = require('nfc-pcsc').NFC;
+  nfcDisponible = true;
+  console.log('✅ Module nfc-pcsc chargé avec succès');
+} catch (error) {
+  nfcErreur = error.message;
+  console.warn('⚠️ Module nfc-pcsc non disponible:', error.message);
+  console.warn('📡 Mode simulation NFC activé - Les cartes NTAG 216 seront simulées');
+}
 
 class NfcService {
   constructor() {
@@ -42,28 +54,14 @@ class NfcService {
     this.lecteurs = new Map();
     this.carteActuelle = null;
     this.estConnecte = false;
+    this.modeSimulation = !nfcDisponible;
     this.config = NTAG216_CONFIG;
+    this.erreurInitialisation = nfcErreur;
 
-    // Initialiser si le module est disponible et si INIT_NFC n'est pas désactivé
-    if (NFC && process.env.INIT_NFC !== 'false') {
-      console.log('📡 Module NFC disponible, initialisation asynchrone...');
-      // Initialiser de manière asynchrone avec délai pour ne pas bloquer le démarrage
-      setTimeout(() => {
-        try {
-          this.initialiser();
-        } catch (error) {
-          console.error('❌ Erreur lors de l\'initialisation NFC:', error);
-          this.estConnecte = false;
-        }
-      }, 5000); // Délai de 5 secondes pour laisser le serveur démarrer
-    } else {
-      if (process.env.INIT_NFC === 'false') {
-        console.log('⚠️ Initialisation NFC désactivée via INIT_NFC=false (mode simulation)');
-      } else {
-        console.log('⚠️ Module NFC non disponible (mode simulation)');
-      }
+    // Initialiser si le module est disponible
+    if (NFC) {
+      this.initialiser();
     }
-    console.log('✅ NfcService initialisé');
   }
 
   /**
@@ -76,47 +74,52 @@ class NfcService {
       this.nfc.on('reader', reader => {
         console.log(`📡 Lecteur NFC détecté: ${reader.name}`);
         this.lecteurs.set(reader.name, reader);
+        this.modeSimulation = false;
 
-        // Événement carte détectée
         reader.on('card', card => {
-          console.log(`💳 Carte NTAG 216 détectée: ${card.uid}`);
+          console.log(`💳 Carte NTAG 216 détectée: UID=${card.uid}`);
           this.carteActuelle = {
             uid: card.uid,
-            atr: card.atr,
-            standard: card.standard,
+            atr: card.atr?.toString('hex') || '',
+            standard: card.standard || 'ISO14443A',
             type: this.determinerTypeCarte(card.atr),
             lecteur: reader.name,
-            capacite: this.config.memoire_utilisable
+            capacite: this.config.memoire_utilisable,
+            timestamp: new Date().toISOString()
           };
         });
 
-        // Événement carte retirée
         reader.on('card.off', card => {
           console.log(`💳 Carte retirée: ${card.uid}`);
           this.carteActuelle = null;
         });
 
-        // Erreurs du lecteur
         reader.on('error', err => {
-          console.error(`❌ Erreur lecteur ${reader.name}:`, err);
+          console.error(`❌ Erreur lecteur ${reader.name}:`, err.message);
         });
 
         reader.on('end', () => {
           console.log(`📡 Lecteur déconnecté: ${reader.name}`);
           this.lecteurs.delete(reader.name);
+          if (this.lecteurs.size === 0) {
+            this.modeSimulation = true;
+          }
         });
       });
 
       this.nfc.on('error', err => {
-        console.error('❌ Erreur NFC:', err);
+        console.error('❌ Erreur NFC globale:', err.message);
+        this.erreurInitialisation = err.message;
       });
 
       this.estConnecte = true;
       console.log('✅ Service NFC initialisé (NTAG 216)');
 
     } catch (error) {
-      console.error('❌ Erreur initialisation NFC:', error);
+      console.error('❌ Erreur initialisation NFC:', error.message);
       this.estConnecte = false;
+      this.modeSimulation = true;
+      this.erreurInitialisation = error.message;
     }
   }
 
@@ -125,13 +128,20 @@ class NfcService {
    */
   async getStatus() {
     return {
-      disponible: !!NFC,
+      disponible: nfcDisponible,
       connecte: this.estConnecte,
+      modeSimulation: this.modeSimulation,
       nombreLecteurs: this.lecteurs.size,
       cartePresente: !!this.carteActuelle,
       carteActuelle: this.carteActuelle,
       typeCarteSupportee: 'NTAG 216',
-      capacite: this.config.memoire_utilisable + ' bytes'
+      capacite: `${this.config.memoire_utilisable} bytes`,
+      erreur: this.erreurInitialisation,
+      infoModule: {
+        nom: 'nfc-pcsc',
+        charge: nfcDisponible,
+        erreur: nfcErreur
+      }
     };
   }
 
@@ -141,21 +151,23 @@ class NfcService {
   async getLecteurs() {
     const lecteursList = [];
 
-    for (const [nom, lecteur] of this.lecteurs) {
+    for (const [nom] of this.lecteurs) {
       lecteursList.push({
         nom,
         connecte: true,
-        typeCarteSupportee: 'NTAG 216'
+        typeCarteSupportee: 'NTAG 216',
+        simule: false
       });
     }
 
-    // Si aucun lecteur réel, simuler pour le développement
+    // Toujours retourner un lecteur simulé si aucun réel
     if (lecteursList.length === 0) {
       lecteursList.push({
-        nom: 'Luca 40 KM - NFC Reader (Simulé)',
-        connecte: false,
+        nom: 'Luca 40 KM - Lecteur NFC Intégré (Simulation)',
+        connecte: true,
+        typeCarteSupportee: 'NTAG 216',
         simule: true,
-        typeCarteSupportee: 'NTAG 216'
+        message: 'Mode simulation actif - Connectez l\'imprimante pour utiliser le vrai lecteur'
       });
     }
 
@@ -166,8 +178,8 @@ class NfcService {
    * Lire les données d'une carte NFC NTAG 216
    */
   async lireCarte(nomLecteur = null) {
-    // Mode simulé si pas de module NFC
-    if (!NFC || !this.carteActuelle) {
+    // Mode simulé
+    if (this.modeSimulation || !this.carteActuelle) {
       const uid = this.genererUIDSimule();
       return {
         succes: true,
@@ -176,10 +188,13 @@ class NfcService {
           uid: uid,
           type: 'NTAG_216',
           capacite: this.config.memoire_utilisable,
+          pagesLibres: this.config.pages_utilisateur,
           donnees: {
-            message: 'Mode simulation - Aucune donnée réelle'
+            message: 'Carte NTAG 216 simulée',
+            timestamp: new Date().toISOString()
           }
-        }
+        },
+        message: 'Lecture simulée - Aucun lecteur NFC connecté'
       };
     }
 
@@ -195,11 +210,11 @@ class NfcService {
         };
       }
 
-      // Lire les pages de données NTAG 216 (pages 4-225)
-      const donnees = await this.lirePages(lecteur, 4, 20); // Lire les 20 premières pages
+      const donnees = await this.lirePages(lecteur, 4, 20);
 
       return {
         succes: true,
+        simule: false,
         donnees: {
           uid: this.carteActuelle.uid,
           type: 'NTAG_216',
@@ -222,16 +237,23 @@ class NfcService {
    */
   async encoderCarte(donnees, nomLecteur = null) {
     // Mode simulé
-    if (!NFC || !this.carteActuelle) {
+    if (this.modeSimulation || !this.carteActuelle) {
       const uid = this.genererUIDSimule();
-      console.log('📡 [SIMULÉ] Encodage NTAG 216 avec données:', donnees);
+      const taille = JSON.stringify(donnees).length;
+
+      console.log(`📡 [SIMULATION] Encodage NTAG 216:`);
+      console.log(`   UID: ${uid}`);
+      console.log(`   Données: ${taille} bytes`);
+      console.log(`   Contenu:`, donnees);
+
       return {
         succes: true,
         simule: true,
         uid: uid,
         type: 'NTAG_216',
-        message: 'Encodage simulé avec succès',
-        tailleEcrite: JSON.stringify(donnees).length
+        tailleEcrite: taille,
+        capaciteRestante: this.config.memoire_utilisable - taille,
+        message: 'Encodage simulé avec succès - Connectez un lecteur NFC pour encoder réellement'
       };
     }
 
@@ -247,10 +269,8 @@ class NfcService {
         };
       }
 
-      // Préparer les données NDEF pour NTAG 216
       const donneesNDEF = this.preparerDonneesNDEF(donnees);
 
-      // Vérifier la taille
       if (donneesNDEF.length > this.config.max_ndef_message) {
         return {
           succes: false,
@@ -258,16 +278,17 @@ class NfcService {
         };
       }
 
-      // Écrire sur la carte NTAG 216
       await this.ecrirePagesNTAG216(lecteur, donneesNDEF);
 
       console.log('✅ Encodage NTAG 216 réussi');
 
       return {
         succes: true,
+        simule: false,
         uid: this.carteActuelle.uid,
         type: 'NTAG_216',
-        tailleEcrite: donneesNDEF.length
+        tailleEcrite: donneesNDEF.length,
+        capaciteRestante: this.config.memoire_utilisable - donneesNDEF.length
       };
 
     } catch (error) {
@@ -286,20 +307,15 @@ class NfcService {
     const donnees = [];
 
     for (let page = pageDebut; page < pageDebut + nombrePages; page++) {
-      // Commande READ pour NTAG (lit 4 pages à la fois = 16 bytes)
       const commande = Buffer.from([
-        0xFF, // CLA
-        0xB0, // INS - READ BINARY
-        0x00, // P1
-        page, // P2 - Numéro de page
-        0x04  // Le - Nombre de bytes à lire (1 page = 4 bytes)
+        0xFF, 0xB0, 0x00, page, 0x04
       ]);
 
       try {
         const response = await this.transmettreAPDU(lecteur, commande);
         donnees.push(...response.slice(0, 4));
       } catch (error) {
-        console.error(`Erreur lecture page ${page}:`, error);
+        console.error(`Erreur lecture page ${page}:`, error.message);
         break;
       }
     }
@@ -311,36 +327,25 @@ class NfcService {
    * Écrire des données sur NTAG 216
    */
   async ecrirePagesNTAG216(lecteur, donnees) {
-    // Ajouter l'en-tête NDEF TLV
     const ndefTLV = Buffer.concat([
-      Buffer.from([0x03]), // Type: NDEF Message
-      Buffer.from([donnees.length]), // Length
+      Buffer.from([0x03, donnees.length]),
       donnees,
-      Buffer.from([0xFE]) // Terminator TLV
+      Buffer.from([0xFE])
     ]);
 
-    // Calculer le nombre de pages nécessaires
     const nombrePages = Math.ceil(ndefTLV.length / 4);
 
-    // Écrire page par page à partir de la page 4
     for (let i = 0; i < nombrePages; i++) {
       const pageNum = this.config.page_debut_donnees + i;
       const offset = i * 4;
       const pageData = Buffer.alloc(4);
 
-      // Copier les données pour cette page
       for (let j = 0; j < 4 && offset + j < ndefTLV.length; j++) {
         pageData[j] = ndefTLV[offset + j];
       }
 
-      // Commande WRITE pour NTAG 216
       const commande = Buffer.from([
-        0xFF, // CLA
-        0xD6, // INS - UPDATE BINARY
-        0x00, // P1
-        pageNum, // P2 - Numéro de page
-        0x04, // Lc - Longueur données
-        ...pageData
+        0xFF, 0xD6, 0x00, pageNum, 0x04, ...pageData
       ]);
 
       await this.transmettreAPDU(lecteur, commande);
@@ -355,19 +360,16 @@ class NfcService {
       lecteur.transmit(commande, 255, (err, response) => {
         if (err) {
           reject(err);
-        } else {
-          // Vérifier le status word (90 00 = succès)
-          if (response.length >= 2) {
-            const sw1 = response[response.length - 2];
-            const sw2 = response[response.length - 1];
-            if (sw1 === 0x90 && sw2 === 0x00) {
-              resolve(response.slice(0, -2));
-            } else {
-              reject(new Error(`Erreur APDU: ${sw1.toString(16).padStart(2, '0')} ${sw2.toString(16).padStart(2, '0')}`));
-            }
+        } else if (response.length >= 2) {
+          const sw1 = response[response.length - 2];
+          const sw2 = response[response.length - 1];
+          if (sw1 === 0x90 && sw2 === 0x00) {
+            resolve(response.slice(0, -2));
           } else {
-            reject(new Error('Réponse APDU invalide'));
+            reject(new Error(`APDU Error: ${sw1.toString(16).padStart(2, '0')}${sw2.toString(16).padStart(2, '0')}`));
           }
+        } else {
+          reject(new Error('Réponse APDU invalide'));
         }
       });
     });
@@ -379,19 +381,12 @@ class NfcService {
   preparerDonneesNDEF(donnees) {
     const texte = typeof donnees === 'string' ? donnees : JSON.stringify(donnees);
     const langCode = 'fr';
-
-    // Format NDEF pour record texte (court)
     const langCodeBuffer = Buffer.from(langCode, 'utf8');
     const texteBuffer = Buffer.from(texte, 'utf8');
     const payloadLength = langCodeBuffer.length + texteBuffer.length + 1;
 
-    // Record Header
     const header = Buffer.from([
-      0xD1, // MB=1, ME=1, CF=0, SR=1, IL=0, TNF=001 (Well-Known)
-      0x01, // Type Length = 1
-      payloadLength, // Payload Length
-      0x54, // Type = 'T' (Text)
-      langCodeBuffer.length // Status byte (Language code length)
+      0xD1, 0x01, payloadLength, 0x54, langCodeBuffer.length
     ]);
 
     return Buffer.concat([header, langCodeBuffer, texteBuffer]);
@@ -406,7 +401,6 @@ class NfcService {
     }
 
     try {
-      // Chercher le TLV NDEF (type 0x03)
       let offset = 0;
       while (offset < donnees.length && donnees[offset] !== 0x03) {
         offset++;
@@ -416,22 +410,17 @@ class NfcService {
         return { raw: donnees.toString('hex') };
       }
 
-      // Lire la longueur du message NDEF
-      offset++; // Skip type
+      offset++;
       const length = donnees[offset];
-      offset++; // Skip length
+      offset++;
 
       if (offset + length > donnees.length) {
         return { raw: donnees.toString('hex') };
       }
 
-      // Parser le record NDEF
       const header = donnees[offset];
-      const typeLength = donnees[offset + 1];
-      const payloadLength = donnees[offset + 2];
-
       if ((header & 0x07) === 0x01 && donnees[offset + 3] === 0x54) {
-        // Record texte
+        const payloadLength = donnees[offset + 2];
         const langLength = donnees[offset + 4] & 0x3F;
         const textStart = offset + 5 + langLength;
         const texte = donnees.slice(textStart, textStart + payloadLength - langLength - 1).toString('utf8');
@@ -453,7 +442,7 @@ class NfcService {
    * Formater une carte NFC NTAG 216
    */
   async formaterCarte(nomLecteur = null) {
-    if (!NFC || !this.carteActuelle) {
+    if (this.modeSimulation || !this.carteActuelle) {
       return {
         succes: true,
         simule: true,
@@ -467,91 +456,34 @@ class NfcService {
         : this.lecteurs.values().next().value;
 
       if (!lecteur) {
-        return {
-          succes: false,
-          erreur: 'Aucun lecteur disponible'
-        };
+        return { succes: false, erreur: 'Aucun lecteur disponible' };
       }
 
-      // Écrire des pages vides + Terminator TLV
-      const vide = Buffer.from([0x03, 0x00, 0xFE, 0x00]); // Empty NDEF + Terminator
-
+      const vide = Buffer.from([0x03, 0x00, 0xFE, 0x00]);
       const commande = Buffer.from([
-        0xFF, 0xD6, 0x00,
-        this.config.page_debut_donnees,
-        0x04,
-        ...vide
+        0xFF, 0xD6, 0x00, this.config.page_debut_donnees, 0x04, ...vide
       ]);
 
       await this.transmettreAPDU(lecteur, commande);
 
-      console.log('🗑️ Carte NTAG 216 formatée');
       return {
         succes: true,
+        simule: false,
         message: 'Carte NTAG 216 formatée avec succès'
       };
     } catch (error) {
-      return {
-        succes: false,
-        erreur: error.message
-      };
+      return { succes: false, erreur: error.message };
     }
   }
 
   /**
-   * Protéger la carte avec un mot de passe (NTAG 216)
-   */
-  async protegerCarte(motDePasse, nomLecteur = null) {
-    if (!NFC || !this.carteActuelle) {
-      return {
-        succes: true,
-        simule: true,
-        message: 'Protection NTAG 216 simulée avec succès'
-      };
-    }
-
-    if (motDePasse.length !== 4) {
-      return {
-        succes: false,
-        erreur: 'Le mot de passe doit faire exactement 4 caractères'
-      };
-    }
-
-    try {
-      const lecteur = nomLecteur
-        ? this.lecteurs.get(nomLecteur)
-        : this.lecteurs.values().next().value;
-
-      // Écrire le mot de passe sur la page 229
-      const pwdBuffer = Buffer.from(motDePasse, 'utf8');
-      const commande = Buffer.from([
-        0xFF, 0xD6, 0x00,
-        this.config.page_password,
-        0x04,
-        ...pwdBuffer
-      ]);
-
-      await this.transmettreAPDU(lecteur, commande);
-
-      return {
-        succes: true,
-        message: 'Carte NTAG 216 protégée avec succès'
-      };
-    } catch (error) {
-      return {
-        succes: false,
-        erreur: error.message
-      };
-    }
-  }
-
-  /**
-   * Générer un UID simulé au format NTAG 216 (7 bytes)
+   * Générer un UID simulé au format NTAG 216 (7 bytes = 14 hex chars)
    */
   genererUIDSimule() {
     const hex = '0123456789ABCDEF';
-    let uid = '';
-    for (let i = 0; i < 14; i++) {
+    // NTAG 216 UID format: 04:XX:XX:XX:XX:XX:XX (starts with 04 for NXP)
+    let uid = '04';
+    for (let i = 0; i < 12; i++) {
       uid += hex[Math.floor(Math.random() * 16)];
     }
     return uid;
@@ -561,11 +493,9 @@ class NfcService {
    * Déterminer le type de carte depuis l'ATR
    */
   determinerTypeCarte(atr) {
-    if (!atr) return 'INCONNU';
+    if (!atr) return 'NTAG_216';
+    const atrHex = (typeof atr === 'string' ? atr : atr.toString('hex')).toUpperCase();
 
-    const atrHex = atr.toString('hex').toUpperCase();
-
-    // Patterns ATR pour NTAG
     if (atrHex.includes('0044')) return 'NTAG_216';
     if (atrHex.includes('0042')) return 'NTAG_215';
     if (atrHex.includes('003E')) return 'NTAG_213';
@@ -574,7 +504,7 @@ class NfcService {
     if (atrHex.includes('0003')) return 'MIFARE_ULTRALIGHT';
     if (atrHex.includes('0004')) return 'MIFARE_DESFIRE';
 
-    return 'ISO14443A';
+    return 'NTAG_216'; // Default pour notre cas d'usage
   }
 
   /**
@@ -582,8 +512,8 @@ class NfcService {
    */
   getInfoCarte() {
     return {
-      type: 'NTAG 216',
-      fabricant: 'NXP Semiconductors',
+      type: this.config.nom,
+      fabricant: this.config.fabricant,
       memoire: {
         totale: `${this.config.memoire_totale} bytes`,
         utilisable: `${this.config.memoire_utilisable} bytes`,
@@ -597,10 +527,8 @@ class NfcService {
         protection_mot_de_passe: true,
         compteur_lectures: true
       },
-      compatibilite: [
-        'ISO/IEC 14443-3A',
-        'NFC Forum Type 2 Tag'
-      ]
+      compatibilite: ['ISO/IEC 14443-3A', 'NFC Forum Type 2 Tag'],
+      modeActuel: this.modeSimulation ? 'Simulation' : 'Réel'
     };
   }
 
@@ -609,14 +537,16 @@ class NfcService {
    */
   fermer() {
     if (this.nfc) {
-      this.nfc.close();
+      try {
+        this.nfc.close();
+      } catch (e) {
+        // Ignorer les erreurs de fermeture
+      }
     }
     this.lecteurs.clear();
     this.estConnecte = false;
+    this.carteActuelle = null;
   }
 }
 
-console.log('📡 Export NfcService...');
-const nfcService = new NfcService();
-console.log('✅ NfcService exporté');
-module.exports = nfcService;
+module.exports = new NfcService();

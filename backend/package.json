@@ -1,7 +1,7 @@
 {
   "name": "module-impression-backend",
-  "version": "1.0.0",
-  "description": "Module d'impression de cartes avec support NFC pour imprimante Luca 40 KM",
+  "version": "2.1.0",
+  "description": "Module d'impression de cartes avec support NFC NTAG 216 pour imprimante Luca 40 KM Retransfer",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -12,8 +12,10 @@
     "impression",
     "carte",
     "nfc",
+    "ntag216",
     "luca",
-    "retransfer"
+    "retransfer",
+    "cr80"
   ],
   "author": "",
   "license": "MIT",
@@ -24,10 +26,12 @@
     "express-validator": "^7.0.1",
     "handlebars": "^4.7.8",
     "multer": "^1.4.5-lts.1",
-    "nfc-pcsc": "^0.8.1",
     "pdf-lib": "^1.17.1",
     "puppeteer": "^22.0.0",
     "uuid": "^9.0.0"
+  },
+  "optionalDependencies": {
+    "nfc-pcsc": "^0.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"
