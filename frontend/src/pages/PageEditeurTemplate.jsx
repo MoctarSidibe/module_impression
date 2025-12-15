@@ -64,6 +64,9 @@ import {
   HorizontalRule as LineIcon,
   Gradient as GradientIcon,
   ViewWeek as BarcodeIcon,
+  Upload as UploadIcon,
+  Wallpaper as WallpaperIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -488,7 +491,13 @@ const CanvasElement = ({
           </Box>
         );
       case 'photo':
-        return (
+        return element.src ? (
+          <img
+            src={element.src}
+            alt="Photo"
+            style={{ width: '100%', height: '100%', objectFit: element.objectFit || 'cover' }}
+          />
+        ) : (
           <Box
             sx={{
               width: '100%',
@@ -601,7 +610,7 @@ const CanvasElement = ({
 };
 
 // Panel de propriétés
-const PropertiesPanel = ({ element, onUpdate, onDelete, onDuplicate }) => {
+const PropertiesPanel = ({ element, onUpdate, onDelete, onDuplicate, onImageUpload }) => {
   const [colorPickerOpen, setColorPickerOpen] = useState(null);
 
   if (!element) {
@@ -724,6 +733,193 @@ const PropertiesPanel = ({ element, onUpdate, onDelete, onDuplicate }) => {
           onChange={(e) => onUpdate(element.id, { height: Number(e.target.value) })}
         />
       </Box>
+
+      {/* Image/Logo Upload */}
+      {element.type === 'image' && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Image / Logo
+          </Typography>
+          <Box sx={{ mb: 2 }}>
+            {element.src ? (
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  component="img"
+                  src={element.src}
+                  alt="Preview"
+                  sx={{
+                    width: '100%',
+                    height: 100,
+                    objectFit: 'contain',
+                    borderRadius: 1,
+                    bgcolor: 'rgba(0,0,0,0.1)',
+                    mb: 1,
+                  }}
+                />
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<UploadIcon />}
+                  onClick={() => onImageUpload(element.id)}
+                  sx={{ mb: 1 }}
+                >
+                  Changer l'image
+                </Button>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CloseIcon />}
+                  onClick={() => onUpdate(element.id, { src: '' })}
+                >
+                  Supprimer
+                </Button>
+              </Box>
+            ) : (
+              <Button
+                fullWidth
+                variant="contained"
+                startIcon={<UploadIcon />}
+                onClick={() => onImageUpload(element.id)}
+                sx={{
+                  bgcolor: 'rgba(99, 102, 241, 0.2)',
+                  color: 'primary.main',
+                  '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.3)' },
+                }}
+              >
+                Ajouter une image
+              </Button>
+            )}
+          </Box>
+          <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+            <InputLabel>Ajustement</InputLabel>
+            <Select
+              value={element.objectFit || 'cover'}
+              label="Ajustement"
+              onChange={(e) => onUpdate(element.id, { objectFit: e.target.value })}
+            >
+              <MenuItem value="cover">Couvrir</MenuItem>
+              <MenuItem value="contain">Contenir</MenuItem>
+              <MenuItem value="fill">Remplir</MenuItem>
+              <MenuItem value="none">Aucun</MenuItem>
+            </Select>
+          </FormControl>
+          <TextField
+            label="Rayon de bordure"
+            type="number"
+            size="small"
+            fullWidth
+            value={element.borderRadius || 0}
+            onChange={(e) => onUpdate(element.id, { borderRadius: Number(e.target.value) })}
+            sx={{ mb: 2 }}
+          />
+        </>
+      )}
+
+      {/* Photo d'identité Upload */}
+      {element.type === 'photo' && (
+        <>
+          <Divider sx={{ my: 2 }} />
+          <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+            Photo d'identité
+          </Typography>
+          <Box sx={{ mb: 2 }}>
+            {element.src ? (
+              <Box sx={{ position: 'relative' }}>
+                <Box
+                  component="img"
+                  src={element.src}
+                  alt="Photo preview"
+                  sx={{
+                    width: '100%',
+                    height: 120,
+                    objectFit: 'cover',
+                    borderRadius: 1,
+                    border: element.border || '2px solid #cccccc',
+                    mb: 1,
+                  }}
+                />
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<UploadIcon />}
+                  onClick={() => onImageUpload(element.id)}
+                  sx={{ mb: 1 }}
+                >
+                  Changer la photo
+                </Button>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="error"
+                  startIcon={<CloseIcon />}
+                  onClick={() => onUpdate(element.id, { src: '' })}
+                >
+                  Supprimer
+                </Button>
+              </Box>
+            ) : (
+              <>
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: 100,
+                    bgcolor: '#e0e0e0',
+                    borderRadius: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    mb: 1,
+                    border: '2px dashed rgba(148, 163, 184, 0.3)',
+                  }}
+                >
+                  <PersonIcon sx={{ fontSize: 40, color: '#999' }} />
+                  <Typography variant="caption" color="text.secondary">
+                    Aperçu photo
+                  </Typography>
+                </Box>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  startIcon={<UploadIcon />}
+                  onClick={() => onImageUpload(element.id)}
+                  sx={{
+                    bgcolor: 'rgba(59, 130, 246, 0.2)',
+                    color: '#3b82f6',
+                    '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.3)' },
+                  }}
+                >
+                  Ajouter une photo
+                </Button>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1, textAlign: 'center' }}>
+                  ou utiliser la variable dynamique photo_url
+                </Typography>
+              </>
+            )}
+          </Box>
+          <TextField
+            label="Rayon de bordure"
+            type="number"
+            size="small"
+            fullWidth
+            value={element.borderRadius || 0}
+            onChange={(e) => onUpdate(element.id, { borderRadius: Number(e.target.value) })}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Bordure (ex: 2px solid #ccc)"
+            size="small"
+            fullWidth
+            value={element.border || ''}
+            onChange={(e) => onUpdate(element.id, { border: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+        </>
+      )}
 
       {/* Propriétés texte */}
       {(element.type === 'text' || element.type === 'dynamicText') && (
@@ -1176,6 +1372,13 @@ function PageEditeurTemplate() {
   const [cardBackgroundColor, setCardBackgroundColor] = useState('#ffffff');
   const [cardBackgroundColorVerso, setCardBackgroundColorVerso] = useState('#ffffff');
   const [showCardColorPicker, setShowCardColorPicker] = useState(false);
+  const [cardBackgroundImage, setCardBackgroundImage] = useState(null);
+  const [cardBackgroundImageVerso, setCardBackgroundImageVerso] = useState(null);
+
+  // Refs for file inputs
+  const backgroundImageInputRef = useRef(null);
+  const imageUploadInputRef = useRef(null);
+  const currentImageElementId = useRef(null);
 
   const currentElements = activeFace === 'recto' ? elements : elementsVerso;
   const setCurrentElements = activeFace === 'recto' ? setElements : setElementsVerso;
@@ -1257,6 +1460,67 @@ function PageEditeurTemplate() {
     if (e.target === canvasRef.current) {
       setSelectedId(null);
     }
+  };
+
+  // Handle background image upload
+  const handleBackgroundImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Veuillez sélectionner une image valide');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (activeFace === 'recto') {
+          setCardBackgroundImage(event.target.result);
+        } else {
+          setCardBackgroundImageVerso(event.target.result);
+        }
+        toast.success('Image de fond ajoutée');
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  };
+
+  // Remove background image
+  const removeBackgroundImage = () => {
+    if (activeFace === 'recto') {
+      setCardBackgroundImage(null);
+    } else {
+      setCardBackgroundImageVerso(null);
+    }
+    toast.info('Image de fond supprimée');
+  };
+
+  // Handle image/logo upload for elements
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error('Veuillez sélectionner une image valide');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (currentImageElementId.current) {
+          updateElement(currentImageElementId.current, { src: event.target.result });
+          toast.success('Image ajoutée');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input and element id reference
+    e.target.value = '';
+    currentImageElementId.current = null;
+  };
+
+  // Trigger image upload for a specific element
+  const triggerImageUpload = (elementId) => {
+    currentImageElementId.current = elementId;
+    imageUploadInputRef.current?.click();
   };
 
   const generateHtml = () => {
@@ -1566,6 +1830,91 @@ function PageEditeurTemplate() {
             <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block', fontSize: '0.65rem' }}>
               Fond de carte
             </Typography>
+
+            {/* Background Image Upload */}
+            <Box sx={{ mb: 2 }}>
+              {(activeFace === 'recto' ? cardBackgroundImage : cardBackgroundImageVerso) ? (
+                <Box sx={{ position: 'relative' }}>
+                  <Box
+                    component="img"
+                    src={activeFace === 'recto' ? cardBackgroundImage : cardBackgroundImageVerso}
+                    alt="Background"
+                    sx={{
+                      width: '100%',
+                      height: 60,
+                      objectFit: 'cover',
+                      borderRadius: 1.5,
+                      border: '2px solid rgba(148, 163, 184, 0.3)',
+                      mb: 1,
+                    }}
+                  />
+                  <Box sx={{ display: 'flex', gap: 0.5 }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<UploadIcon />}
+                      onClick={() => backgroundImageInputRef.current?.click()}
+                      sx={{ flex: 1, fontSize: '0.65rem' }}
+                    >
+                      Changer
+                    </Button>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={removeBackgroundImage}
+                      sx={{ bgcolor: 'rgba(239, 68, 68, 0.1)' }}
+                    >
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ) : (
+                <Box
+                  onClick={() => backgroundImageInputRef.current?.click()}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    p: 1.5,
+                    borderRadius: 2,
+                    cursor: 'pointer',
+                    bgcolor: 'rgba(15, 15, 35, 0.5)',
+                    border: '2px dashed rgba(148, 163, 184, 0.2)',
+                    transition: 'all 0.2s ease',
+                    '&:hover': {
+                      bgcolor: 'rgba(99, 102, 241, 0.15)',
+                      borderColor: 'rgba(99, 102, 241, 0.3)',
+                    },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 1.5,
+                      bgcolor: 'rgba(99, 102, 241, 0.15)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <WallpaperIcon sx={{ color: '#6366f1', fontSize: 20 }} />
+                  </Box>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={500} noWrap>
+                      Image de fond
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                      Cliquez pour ajouter
+                    </Typography>
+                  </Box>
+                  <UploadIcon sx={{ color: 'text.disabled', fontSize: 18 }} />
+                </Box>
+              )}
+            </Box>
+
+            {/* Background Color Picker */}
             <Box sx={{ position: 'relative', mb: 2 }}>
               <Box
                 onClick={() => setShowCardColorPicker(!showCardColorPicker)}
@@ -1695,26 +2044,59 @@ function PageEditeurTemplate() {
                 position: 'relative',
                 boxShadow: '0 20px 60px rgba(0, 0, 0, 0.4)',
                 overflow: 'hidden',
-                backgroundImage: showGrid
-                  ? `
-                    linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)
-                  `
-                  : 'none',
-                backgroundSize: `${10 * scale}px ${10 * scale}px`,
               }}
             >
-              {currentElements.map((element) => (
-                <CanvasElement
-                  key={element.id}
-                  element={element}
-                  selected={selectedId === element.id}
-                  onSelect={setSelectedId}
-                  onUpdate={updateElement}
-                  scale={scale}
-                  showGrid={showGrid}
+              {/* Background Image Layer */}
+              {(activeFace === 'recto' ? cardBackgroundImage : cardBackgroundImageVerso) && (
+                <Box
+                  component="img"
+                  src={activeFace === 'recto' ? cardBackgroundImage : cardBackgroundImageVerso}
+                  alt="Background"
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    pointerEvents: 'none',
+                    zIndex: 0,
+                  }}
                 />
-              ))}
+              )}
+              {/* Grid Overlay */}
+              {showGrid && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `
+                      linear-gradient(rgba(99, 102, 241, 0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(99, 102, 241, 0.1) 1px, transparent 1px)
+                    `,
+                    backgroundSize: `${10 * scale}px ${10 * scale}px`,
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                  }}
+                />
+              )}
+              {/* Elements Layer */}
+              <Box sx={{ position: 'relative', width: '100%', height: '100%', zIndex: 2 }}>
+                {currentElements.map((element) => (
+                  <CanvasElement
+                    key={element.id}
+                    element={element}
+                    selected={selectedId === element.id}
+                    onSelect={setSelectedId}
+                    onUpdate={updateElement}
+                    scale={scale}
+                    showGrid={showGrid}
+                  />
+                ))}
+              </Box>
             </Paper>
           </Box>
 
@@ -1818,10 +2200,27 @@ function PageEditeurTemplate() {
               onUpdate={updateElement}
               onDelete={deleteElement}
               onDuplicate={duplicateElement}
+              onImageUpload={triggerImageUpload}
             />
           </Box>
         </Paper>
       </Box>
+
+      {/* Hidden file inputs */}
+      <input
+        type="file"
+        ref={backgroundImageInputRef}
+        onChange={handleBackgroundImageUpload}
+        accept="image/*"
+        style={{ display: 'none' }}
+      />
+      <input
+        type="file"
+        ref={imageUploadInputRef}
+        onChange={handleImageUpload}
+        accept="image/*"
+        style={{ display: 'none' }}
+      />
     </Box>
   );
 }
