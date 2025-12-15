@@ -27,6 +27,7 @@ Handlebars.registerHelper('lowercase', function(str) {
 
 class PdfService {
   constructor() {
+    console.log('📄 Initialisation PdfService...');
     this.browser = null;
     this.outputDir = path.join(__dirname, '../../uploads/pdf');
 
@@ -34,6 +35,7 @@ class PdfService {
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
     }
+    console.log('✅ PdfService initialisé');
   }
 
   /**
@@ -301,4 +303,7 @@ class PdfService {
   }
 }
 
-module.exports = new PdfService();
+console.log('📄 Export PdfService...');
+const pdfService = new PdfService();
+console.log('✅ PdfService exporté');
+module.exports = pdfService;

@@ -14,11 +14,13 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
+      - INIT_NFC=false
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/api/sante"]
+      test: ["CMD", "node", "healthcheck.js"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
     networks:
       - cardprint-network
 

@@ -246,4 +246,7 @@ class PrintService {
   }
 }
 
-module.exports = new PrintService();
+console.log('🖨️ Export PrintService...');
+const printService = new PrintService();
+console.log('✅ PrintService exporté');
+module.exports = printService;
