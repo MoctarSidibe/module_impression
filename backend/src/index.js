@@ -84,8 +84,9 @@ app.use((err, req, res, next) => {
 });
 
 // Démarrage du serveur
-app.listen(PORT, () => {
-  console.log(`
+try {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   🖨️  CARDPRINT PRO - SERVEUR DÉMARRÉ                    ║
@@ -106,7 +107,11 @@ app.listen(PORT, () => {
 ║   Imprimante: Luca 40 KM Retransfer                       ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
-  `);
-});
+    `);
+  });
+} catch (error) {
+  console.error('❌ Erreur lors du démarrage du serveur:', error);
+  process.exit(1);
+}
 
 module.exports = app;

@@ -58,10 +58,28 @@ class NfcService {
     this.config = NTAG216_CONFIG;
     this.erreurInitialisation = nfcErreur;
 
-    // Initialiser si le module est disponible
-    if (NFC) {
-      this.initialiser();
+    // Initialiser si le module est disponible et si INIT_NFC n'est pas désactivé
+    if (NFC && process.env.INIT_NFC !== 'false') {
+      console.log('📡 Module NFC disponible, initialisation asynchrone...');
+      // Initialiser de manière asynchrone avec délai pour ne pas bloquer le démarrage
+      setTimeout(() => {
+        try {
+          this.initialiser();
+        } catch (error) {
+          console.error('❌ Erreur lors de l\'initialisation NFC:', error.message);
+          this.estConnecte = false;
+          this.modeSimulation = true;
+          this.erreurInitialisation = error.message;
+        }
+      }, 5000); // Délai de 5 secondes pour laisser le serveur démarrer
+    } else {
+      if (process.env.INIT_NFC === 'false') {
+        console.log('⚠️ Initialisation NFC désactivée via INIT_NFC=false (mode simulation)');
+      } else {
+        console.log('⚠️ Module NFC non disponible (mode simulation)');
+      }
     }
+    console.log('✅ NfcService initialisé');
   }
 
   /**
@@ -549,4 +567,7 @@ class NfcService {
   }
 }
 
-module.exports = new NfcService();
+console.log('📡 Export NfcService...');
+const nfcService = new NfcService();
+console.log('✅ NfcService exporté');
+module.exports = nfcService;
